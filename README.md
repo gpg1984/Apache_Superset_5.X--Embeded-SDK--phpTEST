@@ -32,8 +32,6 @@ This project implements a robust solution for embedding Superset 5.0 dashboards,
 superset-embedded-sdk/
 ├── superset_embedded_sdk_configurable.html  # Main interface
 ├── guest-token-configurable.php             # Configurable PHP backend
-├── guest-token.php                          # Static PHP backend (backup)
-├── superset_config_final.py                 # Superset configurations
 └── README.md                                # This documentation
 ```
 
