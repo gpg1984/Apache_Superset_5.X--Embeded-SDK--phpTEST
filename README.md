@@ -29,10 +29,12 @@ This project implements a robust solution for embedding Superset 5.0 dashboards,
 ## 📁 Project Files
 
 ```
-superset-embedded-sdk/
-├── superset_embedded_sdk_configurable.html  # Main interface
-├── guest-token-configurable.php             # Configurable PHP backend
-└── README.md                                # This documentation
+your-project/
+├── public/ (web accessible)
+│   └── superset_embedded_sdk_configurable.html
+├── backend/ (server only)
+│   └── guest-token-configurable.php
+└── README.md
 ```
 
 ## 🔧 Prerequisites
