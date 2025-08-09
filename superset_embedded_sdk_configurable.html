@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Superset Embedded SDK - Configurable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f8f9fa;margin:0}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .card{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.08);padding:20px;margin-bottom:20px}
+    .title{font-weight:700;font-size:20px;margin:0 0 12px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;margin-bottom:8px;font-weight:600;color:#555}
+    .form-group input{width:100%;padding:12px;border:2px solid #e9ecef;border-radius:8px;font-size:14px;transition:border-color 0.3s}
+    .form-group input:focus{outline:none;border-color:#667eea}
+    .btn{background:#667eea;color:#fff;border:0;border-radius:8px;padding:12px 20px;cursor:pointer;font-size:14px;transition:background 0.3s}
+    .btn:hover{background:#5a6fd8}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn.success{background:#28a745}
+    .btn.success:hover{background:#218838}
+    .log{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;background:#f1f3f5;padding:12px;border-radius:8px;height:200px;overflow:auto;margin-top:16px}
+    #mount{height:100vh;border-radius:12px;overflow:hidden;background:#fff;position:relative}
+  
+    #mount {
+      position: relative;
+      height: 100vh;
+      padding: 0 !important;
+    }
+
+    #mount > iframe, #mount iframe {
+      position: absolute !important;
+      top: 0; left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      border: 0 !important;
+      display: block;
+    }
+
+    .config-panel {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .config-panel h3 {
+      margin: 0 0 16px 0;
+      color: #495057;
+      font-size: 16px;
+    }
+
+    .credentials-group {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .credentials-group h4 {
+      margin: 0 0 8px 0;
+      color: #856404;
+      font-size: 14px;
+    }
+
+    .credentials-group p {
+      margin: 0;
+      font-size: 12px;
+      color: #856404;
+    }
+  </style>
+  <script src="https://unpkg.com/@superset-ui/embedded-sdk"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 class="title">🎯 Superset Embedded SDK - Configurable</h1>
+      <p>Configure the Superset URL and dashboard UUID for embedding</p>
+    </div>
+
+    <div class="card">
+      <div class="config-panel">
+        <h3>⚙️ Configuration</h3>
+        
+        <div class="form-group">
+          <label for="supersetUrl">Superset URL:</label>
+          <input type="url" id="supersetUrl" placeholder="https://your-superset.com" value="https://superset.domain.com">
+        </div>
+        
+        <div class="form-group">
+          <label for="dashboardUuid">Dashboard UUID (Embed SDK):</label>
+          <input type="text" id="dashboardUuid" placeholder="dashboard-uuid" value="Ex. Embeded SDK UUID aa4bc5ac-d012-4c6f-181d-5ba42f73261b">
+        </div>
+
+        <div class="credentials-group">
+          <h4>🔐 Admin Credentials</h4>
+          <p>Admin credentials are required to generate guest tokens. Configure them in the <code>guest-token.php</code> file</p>
+        </div>
+
+        <div class="row">
+          <button id="btnEmbed" class="btn">🚀 Embed Dashboard</button>
+          <button id="btnRefresh" class="btn success">🔄 Regenerate Token</button>
+          <button id="btnTest" class="btn" style="background:#17a2b8">🧪 Test Connection</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">📊 Debug Log</div>
+      <div id="log" class="log"></div>
+    </div>
+
+    <div id="mount" class="card"></div>
+  </div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const btnEmbed = document.getElementById('btnEmbed');
+    const btnRefresh = document.getElementById('btnRefresh');
+    const btnTest = document.getElementById('btnTest');
+
+    function log(s){ 
+      const t = new Date().toLocaleTimeString(); 
+      logEl.innerHTML += `[${t}] ${s}<br>`; 
+      logEl.scrollTop = logEl.scrollHeight; 
+    }
+
+    function getConfig() {
+      return {
+        supersetUrl: document.getElementById('supersetUrl').value.trim(),
+        dashboardUuid: document.getElementById('dashboardUuid').value.trim()
+      };
+    }
+
+    function validateConfig() {
+      const config = getConfig();
+      if (!config.supersetUrl) {
+        throw new Error('Superset URL is required');
+      }
+      if (!config.dashboardUuid) {
+        throw new Error('Dashboard UUID is required');
+      }
+      if (!config.supersetUrl.startsWith('http')) {
+        throw new Error('URL must start with http:// or https://');
+      }
+      return config;
+    }
+
+    async function testConnection() {
+      btnTest.disabled = true;
+      try {
+        const config = validateConfig();
+        log(`🧪 Testing connection to: ${config.supersetUrl}`);
+        
+        const response = await fetch(`${config.supersetUrl}/api/v1/security/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'your_user',
+            password: 'your_password',
+            provider: 'db'
+          })
+        });
+        
+        if (response.ok) {
+          log('✅ Superset connection OK');
+        } else {
+          log(`❌ Connection error: ${response.status} ${response.statusText}`);
+        }
+      } catch (e) {
+        log(`💥 Test error: ${e.message}`);
+      } finally {
+        btnTest.disabled = false;
+      }
+    }
+
+    async function fetchGuestToken() {
+      const config = getConfig();
+      log(`🔐 Fetching guest token for: ${config.supersetUrl}`);
+      
+      // Create a temporary PHP file with the configurations
+      const formData = new FormData();
+      formData.append('superset_url', config.supersetUrl);
+      formData.append('dashboard_uuid', config.dashboardUuid);
+      
+      const response = await fetch("guest-token-configurable.php", { 
+        method: 'POST',
+        body: formData,
+        credentials: "same-origin" 
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`guest-token-configurable.php ${response.status}: ${errorText}`);
+      }
+      
+      const token = (await response.text()).trim();
+      if (!token || token.length < 20) {
+        throw new Error("Invalid token returned");
+      }
+      
+      log("✅ Token obtained successfully");
+      return token;
+    }
+
+    async function embed() {
+      btnEmbed.disabled = true;
+      try {
+        const config = validateConfig();
+        log(`🚀 Starting dashboard embedding: ${config.dashboardUuid}`);
+        
+        const token = await fetchGuestToken();
+        
+        await window.supersetEmbeddedSdk.embedDashboard({
+          id: config.dashboardUuid,
+          supersetDomain: config.supersetUrl,
+          mountPoint: document.getElementById("mount"),
+          fetchGuestToken: async () => token,
+          dashboardUiConfig: { 
+            hideTitle: true, 
+            filters: { expanded: false } 
+          }
+        });
+        
+        log("🎉 Dashboard embedded successfully!");
+      } catch (e) {
+        console.error(e);
+        log(`💥 Embedding error: ${e.message}`);
+        alert(`Embedding error: ${e.message}`);
+      } finally {
+        btnEmbed.disabled = false;
+      }
+    }
+
+    async function refreshAndReMount() {
+      log("♻️ Regenerating token and remounting dashboard...");
+      const mount = document.getElementById('mount');
+      mount.innerHTML = "";
+      await embed();
+    }
+
+    // Event listeners
+    btnEmbed.addEventListener('click', embed);
+    btnRefresh.addEventListener('click', refreshAndReMount);
+    btnTest.addEventListener('click', testConnection);
+    
+    document.addEventListener('DOMContentLoaded', () => { 
+      log("🚀 Page loaded - Configure the URL and UUID above");
+      log("💡 Tip: Use the 'Test Connection' button to verify if Superset is accessible");
+    });
+  </script>
+</body>
+</html> 
